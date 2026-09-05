@@ -5,6 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -31,6 +32,17 @@ public class ApiExceptionHandler {
                 .map(f -> f.getDefaultMessage())
                 .orElse("입력을 다시 확인해 주세요");
         return ResponseEntity.badRequest().body(Map.of("message", message));
+    }
+
+    /**
+     * 본문이 JSON 이 아니거나 깨졌다. <b>400 이다</b> — 보낸 쪽이 고칠 수 있는 일이라
+     * 500 으로 답하면 부르는 쪽이 서버를 의심하며 재시도한다. 실제로 겪었다:
+     * 셸이 한글을 CP949 로 보낸 요청에 500 이 나갔다.
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, String>> handle(HttpMessageNotReadableException e) {
+        log.debug("읽을 수 없는 본문", e);
+        return ResponseEntity.badRequest().body(Map.of("message", "요청 본문을 읽지 못했어요"));
     }
 
     /**

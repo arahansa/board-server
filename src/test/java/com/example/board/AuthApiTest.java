@@ -56,6 +56,18 @@ class AuthApiTest extends ApiTestSupport {
     }
 
     @Test
+    @DisplayName("깨진 본문은 500 이 아니라 400 이다")
+    void 읽을_수_없는_본문() throws Exception {
+        // 보낸 쪽이 고칠 수 있는 일이다. 500 으로 답하면 부르는 쪽이 서버를 의심하며
+        // 재시도한다 — 실제로 셸이 한글을 CP949 로 보낸 요청에서 겪었다
+        mvc.perform(post("/auth/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(new byte[] {0x7b, (byte) 0xb5, (byte) 0xa5, 0x7d}))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("요청 본문을 읽지 못했어요"));
+    }
+
+    @Test
     @DisplayName("A-201 없는 이메일과 틀린 비밀번호가 같은 401·같은 문구다")
     void 로그인_실패는_구분되지_않는다() throws Exception {
         signup("a@b.com", "아라");
