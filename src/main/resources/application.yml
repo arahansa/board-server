@@ -1,0 +1,41 @@
+spring:
+  application:
+    name: board-server
+
+  datasource:
+    # 파일 모드다. 껐다 켜도 글이 남아 있어야 워크플로우를 이어서 시연할 수 있다.
+    # 메모리 모드로 두면 재시작마다 게시판이 비어 "연결됨" 을 확인할 수 없다
+    url: jdbc:h2:file:./data/board;AUTO_SERVER=TRUE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      # 예제라 스키마는 엔티티가 만든다. 실제 프로젝트에서는 마이그레이션 도구를 쓴다
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate.format_sql: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2
+
+server:
+  port: 8080
+  servlet:
+    # 기획서의 경로에는 /api 가 없다. 여기서 붙이므로 Spring 의 핸들러 매핑 패턴이
+    # 문서의 경로와 글자 그대로 같아진다 — 대조 테스트가 보정을 하지 않아도 된다
+    context-path: /api
+
+board:
+  jwt:
+    # 예제 기본값이다. 실제로는 환경변수로 준다 — 이 값이 새면 토큰을 위조할 수 있다
+    secret: ${BOARD_JWT_SECRET:board-server-example-secret-key-change-me-please-32bytes}
+    ttl-hours: 24
+
+logging:
+  level:
+    org.hibernate.SQL: warn

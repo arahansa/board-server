@@ -1,0 +1,64 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '3.5.5'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+group = 'com.example'
+version = '0.1.0'
+
+java {
+    toolchain { languageVersion = JavaLanguageVersion.of(17) }
+}
+
+repositories { mavenCentral() }
+
+dependencies {
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.6'
+
+    runtimeOnly 'com.h2database:h2'
+
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.security:spring-security-test'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    testLogging { events 'passed', 'failed', 'skipped' }
+
+    // 대조 테스트가 기획서를 읽는다. 기본값은 옆 저장소다 —
+    // 두 프로젝트가 examples/ 아래 나란히 있다는 전제가 여기 한 줄로 모여 있다
+    systemProperty 'plan.docs.dir',
+        System.getenv('PLAN_DOCS_DIR') ?: file('../board-front/plan-docs').absolutePath
+}
+
+/* ── api-status ──────────────────────────────────────────────────────────
+ * 네트워크가 필요한 것을 build 에 묶지 않는다. 토큰 없이도 서버는 빌드되고 돌아야
+ * 한다 — 묶으면 오프라인에서 아무것도 못 하게 된다. 그래서 별도 task 다.
+ *
+ * 서버가 api-status 에 쓰는 것은 st_server_wip 와 st_server_done 뿐이다.
+ * 스펙과 version 은 board-front 가 쓴다 (examples/README.md 의 표). */
+
+def apiStatusTask = { String name, String action, String desc ->
+    tasks.register(name, JavaExec) {
+        group = 'api-status'
+        description = desc
+        classpath = sourceSets.main.runtimeClasspath
+        mainClass = 'com.example.board.planning.ApiStatusTool'
+        args = [action]
+        if (project.hasProperty('api')) args += [project.property('api').toString()]
+        systemProperty 'plan.docs.dir',
+            System.getenv('PLAN_DOCS_DIR') ?: file('../board-front/plan-docs').absolutePath
+    }
+}
+
+apiStatusTask('apiStatusReport', 'report', '기획서 · 라우트 · api-status 를 나란히 놓고 본다')
+apiStatusTask('apiStatusMarkWip', 'wip', 'st_server_wip 를 켠다. -Papi=A-100')
+apiStatusTask('apiStatusMarkDone', 'done', 'st_server_done 을 켠다. -Papi=A-100 (없으면 전부)')
