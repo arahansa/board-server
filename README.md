@@ -1,5 +1,5 @@
 ---
-version: "1.3"
+version: "1.4"
 created: "2026-09-05"
 updated: "2026-09-06"
 author: "arahansa"
@@ -79,6 +79,25 @@ Railway → 서비스 → Settings → Volumes → Add Volume    (마운트 경�
 BOARD_JWT_SECRET=<32바이트 이상 랜덤값>
 ```
 
+### 주소 받기
+
+Railway 는 도메인을 저절로 만들어 주지 않는다.
+
+```
+Settings → Networking → Public Networking → Generate Domain
+```
+
+`<서비스>-<해시>.up.railway.app` 이 나온다. 포트를 물으면 `PORT` 에 넣어 준
+값을 답한다 — `application.yml` 이 `${PORT:8080}` 으로 그 값을 읽는다.
+
+**루트는 404 다.** `context-path` 가 `/api` 라서 경로가 하나 더 붙는다.
+
+```
+https://<도메인>/            → 404   ← 고장이 아니다
+https://<도메인>/api/posts   → 200
+https://<도메인>/api/h2      → H2 콘솔
+```
+
 ### 왜 볼륨이 없으면 아예 안 뜨게 했나
 
 컨테이너의 파일시스템은 재배포·재시작마다 사라진다. 그런데 `ddl-auto: update` 라
@@ -129,6 +148,7 @@ Dockerfile 로 빌드시키고 싶으면 대시보드에서 고른다:
 | 볼륨 붙이고 글 1건 → 컨테이너 파괴 후 새 컨테이너 | `totalElements = 1` **살아남음** |
 | 볼륨 없이(`BOARD_ALLOW_EPHEMERAL_DB=true`) 같은 절차 | `1` → **`0`, 사라짐** |
 | JDK 21 컨테이너에서 `./gradlew clean build` (Railpack 흉내) | 고치기 전 **실패** → foojay 넣고 **성공** |
+| `PORT=9000` 으로 컨테이너 기동 | `Tomcat started on port 9000` · `/` 404 · `/api/posts` 200 |
 
 
 ## api-status

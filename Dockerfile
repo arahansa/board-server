@@ -18,9 +18,9 @@ FROM eclipse-temurin:17-jre
 WORKDIR /app
 COPY --from=build /src/build/libs/*.jar app.jar
 
-# Railway 는 PORT 를 준다. 없으면 8080 — 로컬에서 이 이미지를 그냥 띄울 수 있어야 한다
-ENV PORT=8080
+# 포트는 application.yml 이 ${PORT:8080} 으로 읽는다. 여기서 한 번 더 덮으면
+# 덮는 자리가 둘이 되고, 그때부터 어느 쪽이 이기는지를 외워야 한다
 EXPOSE 8080
 
 # 볼륨을 안 붙이면 VolumeGuard 가 여기서 선다 (application.yml 참고)
-ENTRYPOINT ["sh", "-c", "exec java -jar app.jar --server.port=${PORT}"]
+ENTRYPOINT ["java", "-jar", "app.jar"]
