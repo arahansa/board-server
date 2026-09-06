@@ -1,0 +1,15 @@
+# Gradle
+build/
+.gradle/
+
+# H2 파일 모드 — 데이터는 저장소에 넣지 않는다 (application.yml 의 jdbc:h2:file:./data/board)
+data/
+
+# 토큰이 여기 산다 (API_STATUS_TOKEN · BOARD_JWT_SECRET)
+.env
+
+# IDE
+.idea/
+*.iml
+.vscode/
+.DS_Store

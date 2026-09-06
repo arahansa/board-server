@@ -1,14 +1,17 @@
 ---
-version: "1.0"
+version: "1.1"
 created: "2026-09-05"
-updated: "2026-09-05"
+updated: "2026-09-06"
 author: "arahansa"
 ---
 
 # board-server
 
 게시판 예제의 서버. Spring Boot 3.5 · Java 17 · H2 · JPA · JWT.
-`examples/README.md` 가 두 프로젝트의 관계를 설명한다.
+
+[api-status](https://github.com/arahansa/api-status) 의 `examples/board-server` 를
+떼어낸 저장소다. 짝이 되는 프론트(`board-front`)와 두 프로젝트의 관계 설명은
+그쪽 `examples/README.md` 에 있다.
 
 **이 서버는 기획서를 진실로 삼는다.** 새 API 를 여기서 먼저 만들지 않는다 —
 문서를 먼저 쓰고, 그러면 `PlanDocsReconcileTest` 가 빨개진다.
@@ -29,7 +32,7 @@ H2 는 파일 모드다(`./data/board`). 껐다 켜도 글이 남아 있어야 �
 ## ★ 대조 테스트
 
 ```bash
-./gradlew test        # 21개
+./gradlew test        # 22개 (기획서가 없으면 19개 + skip 3개)
 ```
 
 `PlanDocsReconcileTest` 가 `board-front/plan-docs/api/**` 를 읽어
@@ -46,6 +49,16 @@ H2 는 파일 모드다(`./data/board`). 껐다 켜도 글이 남아 있어야 �
 
 기획서 위치는 `PLAN_DOCS_DIR` 이 정하고, 기본값은 `../board-front/plan-docs` 다
 (`build.gradle`). 두 프로젝트가 나란히 있다는 전제가 거기 한 줄에 모여 있다.
+
+**이 저장소에는 기획서가 없다.** 스펙의 주인이 하나여야 해서 복사본을 두지 않았다.
+그래서 이 저장소만 클론하면 `PlanDocsReconcileTest` 3개는 **실패가 아니라 skip** 이고(19 passed · 3 skipped),
+어디를 봤는지를 출력한다. 없는 문서를 「어긋남」으로 볼 수는 없기 때문이다.
+기획서를 옆에 두거나 경로를 주면 그때부터 다시 문다.
+
+```bash
+git clone https://github.com/arahansa/api-status.git
+PLAN_DOCS_DIR=$PWD/api-status/examples/board-front/plan-docs ./gradlew test
+```
 
 ## api-status
 

@@ -4,8 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.example.board.planning.PlanDocs;
 import com.example.board.planning.Routes;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Set;
 import java.util.TreeSet;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,12 +28,29 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
  *
  * <p><b>왜 api-status 를 여기서 안 보나.</b> 네트워크가 필요한 것을 빌드에 묶으면 토큰 없이는
  * 아무것도 못 하게 된다. 상태(st_*)와 버전 대조는 {@code ./gradlew apiStatusReport} 가 한다.
+ *
+ * <p><b>기획서가 없으면 이 클래스만 건너뛴다.</b> 이 저장소는 서버만 담고, 기획서는
+ * board-front 에 산다 — 스펙의 주인이 하나여야 하므로 여기에 복사본을 두지 않는다.
+ * 없는 문서를 "어긋남" 으로 볼 수는 없으니 실패가 아니라 skip 이고, 대신 이유를
+ * 출력한다({@code testLogging} 이 skipped 를 찍는다). 기획서를 옆에 두거나
+ * {@code PLAN_DOCS_DIR} 를 주면 그때부터 다시 문다 — 나머지 테스트는 늘 돈다.
  */
 @SpringBootTest
 class PlanDocsReconcileTest {
 
     @Autowired
     private RequestMappingHandlerMapping mapping;
+
+    /** 기획서를 못 찾으면 이 클래스는 건너뛴다. 어디를 봤는지까지 말한다 */
+    @BeforeEach
+    void 기획서가_있어야_대조한다() {
+        Path api = PlanDocs.dir().resolve("api");
+        Assumptions.assumeTrue(
+                Files.isDirectory(api),
+                () -> "기획서를 찾지 못해 대조를 건너뛴다: " + api.toAbsolutePath()
+                        + "\n  board-front 를 옆에 두거나 PLAN_DOCS_DIR 로 경로를 준다:"
+                        + "\n  PLAN_DOCS_DIR=/path/to/board-front/plan-docs ./gradlew test");
+    }
 
     @Test
     @DisplayName("기획서에 있는 API 는 전부 라우트가 있다")
