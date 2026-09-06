@@ -1,5 +1,5 @@
 ---
-version: "1.2"
+version: "1.3"
 created: "2026-09-05"
 updated: "2026-09-06"
 author: "arahansa"
@@ -88,6 +88,29 @@ BOARD_JWT_SECRET=<32바이트 이상 랜덤값>
 일부러 휘발성으로 띄우려면 `BOARD_ALLOW_EPHEMERAL_DB=true` 를 준다.
 끄는 길은 열어 두되 모르고 지나칠 수는 없게 했다.
 
+### 빌더가 무엇이든 같은 결과가 나와야 한다
+
+`railway.toml` 이 `Dockerfile` 을 가리키지만, Railway 가 그것을 못 보고
+Railpack(자동 감지)으로 빌드하는 경우가 있다 — 서비스를 만든 시점의 커밋에
+`Dockerfile` 이 없었으면 그렇게 된다.
+
+그때 Railpack 이 깔아 주는 JDK 는 17 이 아니고, `build.gradle` 의 toolchain 이
+17 을 못박고 있어 빌드가 선다.
+
+```
+Cannot find a Java installation on your machine matching this tasks
+requirements: {languageVersion=17, ...} for LINUX on x86_64.
+   > No locally installed toolchains match and toolchain download
+     repositories have not been configured.
+```
+
+**다른 버전으로 대충 컴파일하지 않는 것은 Gradle 이 옳다.** 받아 올 곳만 알려 준다 —
+`settings.gradle` 의 foojay-resolver 다. Dockerfile 로 빌드하면(temurin:17-jdk)
+이 플러그인은 할 일이 없다.
+
+Dockerfile 로 빌드시키고 싶으면 대시보드에서 고른다:
+`Settings → Build → Builder → Dockerfile`.
+
 ### 볼륨의 값
 
 | | |
@@ -105,6 +128,7 @@ BOARD_JWT_SECRET=<32바이트 이상 랜덤값>
 | `RAILWAY_ENVIRONMENT` 만 주고 실행 | `IllegalStateException` 으로 **뜨지 않음** |
 | 볼륨 붙이고 글 1건 → 컨테이너 파괴 후 새 컨테이너 | `totalElements = 1` **살아남음** |
 | 볼륨 없이(`BOARD_ALLOW_EPHEMERAL_DB=true`) 같은 절차 | `1` → **`0`, 사라짐** |
+| JDK 21 컨테이너에서 `./gradlew clean build` (Railpack 흉내) | 고치기 전 **실패** → foojay 넣고 **성공** |
 
 
 ## api-status
