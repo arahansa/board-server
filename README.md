@@ -1,5 +1,5 @@
 ---
-version: "1.1"
+version: "1.2"
 created: "2026-09-05"
 updated: "2026-09-06"
 author: "arahansa"
@@ -25,6 +25,9 @@ author: "arahansa"
 H2 는 파일 모드다(`./data/board`). 껐다 켜도 글이 남아 있어야 워크플로우를
 이어서 시연할 수 있다. H2 콘솔은 `/api/h2` 다.
 
+쓰는 디렉터리는 `RAILWAY_VOLUME_MOUNT_PATH` 가 정하고, 없으면 `./data` 다.
+로컬에는 그 변수가 없으니 아무것도 안 해도 예전 그대로 돈다.
+
 경로에 `/api` 가 붙는 것은 `context-path` 다. **기획서의 경로에는 `/api` 가 없고**,
 그래서 Spring 의 핸들러 매핑 패턴이 문서와 글자 그대로 같아진다 —
 대조 테스트가 접두사를 벗기는 보정을 하지 않아도 된다.
@@ -32,7 +35,7 @@ H2 는 파일 모드다(`./data/board`). 껐다 켜도 글이 남아 있어야 �
 ## ★ 대조 테스트
 
 ```bash
-./gradlew test        # 22개 (기획서가 없으면 19개 + skip 3개)
+./gradlew test        # 28개 (기획서가 없으면 25개 + skip 3개)
 ```
 
 `PlanDocsReconcileTest` 가 `board-front/plan-docs/api/**` 를 읽어
@@ -51,7 +54,7 @@ H2 는 파일 모드다(`./data/board`). 껐다 켜도 글이 남아 있어야 �
 (`build.gradle`). 두 프로젝트가 나란히 있다는 전제가 거기 한 줄에 모여 있다.
 
 **이 저장소에는 기획서가 없다.** 스펙의 주인이 하나여야 해서 복사본을 두지 않았다.
-그래서 이 저장소만 클론하면 `PlanDocsReconcileTest` 3개는 **실패가 아니라 skip** 이고(19 passed · 3 skipped),
+그래서 이 저장소만 클론하면 `PlanDocsReconcileTest` 3개는 **실패가 아니라 skip** 이고(25 passed · 3 skipped),
 어디를 봤는지를 출력한다. 없는 문서를 「어긋남」으로 볼 수는 없기 때문이다.
 기획서를 옆에 두거나 경로를 주면 그때부터 다시 문다.
 
@@ -59,6 +62,50 @@ H2 는 파일 모드다(`./data/board`). 껐다 켜도 글이 남아 있어야 �
 git clone https://github.com/arahansa/api-status.git
 PLAN_DOCS_DIR=$PWD/api-status/examples/board-front/plan-docs ./gradlew test
 ```
+
+## Railway 에 올리기
+
+`Dockerfile` 과 `railway.toml` 이 있어서 저장소를 연결하면 그대로 빌드된다.
+**볼륨을 먼저 붙인다.**
+
+```
+Railway → 서비스 → Settings → Volumes → Add Volume    (마운트 경로: /data)
+```
+
+붙이면 Railway 가 `RAILWAY_VOLUME_MOUNT_PATH` 를 넣어 주고 `application.yml` 이
+그 값을 H2 파일 경로로 쓴다. **직접 넣을 환경변수는 이것 하나뿐이다.**
+
+```
+BOARD_JWT_SECRET=<32바이트 이상 랜덤값>
+```
+
+### 왜 볼륨이 없으면 아예 안 뜨게 했나
+
+컨테이너의 파일시스템은 재배포·재시작마다 사라진다. 그런데 `ddl-auto: update` 라
+스키마는 매번 다시 만들어진다 — **에러 없이 빈 게시판이 된다.** 터지면 바로 알지만
+조용히 비면 한참 뒤에 안다. 그래서 `VolumeGuard` 가 Spring 이 뜨기 전에 세운다.
+
+일부러 휘발성으로 띄우려면 `BOARD_ALLOW_EPHEMERAL_DB=true` 를 준다.
+끄는 길은 열어 두되 모르고 지나칠 수는 없게 했다.
+
+### 볼륨의 값
+
+| | |
+|---|---|
+| 레플리카 | **1개.** H2 파일은 두 프로세스가 나눠 쓸 수 없다 (`railway.toml` 이 고정) |
+| 배포 | 새 컨테이너와 옛 컨테이너가 겹칠 수 없어 짧은 다운타임이 생긴다 (`overlapSeconds = 0`) |
+
+여기가 답답해지면 그때가 Postgres 로 옮길 때다. `ddl-auto: update` 라
+`runtimeOnly 'org.postgresql:postgresql'` 와 접속 정보만 있으면 된다.
+
+### 실측 (2026-09-06, 로컬 Docker 로 Railway 흉내)
+
+| 해 본 것 | 결과 |
+|---|---|
+| `RAILWAY_ENVIRONMENT` 만 주고 실행 | `IllegalStateException` 으로 **뜨지 않음** |
+| 볼륨 붙이고 글 1건 → 컨테이너 파괴 후 새 컨테이너 | `totalElements = 1` **살아남음** |
+| 볼륨 없이(`BOARD_ALLOW_EPHEMERAL_DB=true`) 같은 절차 | `1` → **`0`, 사라짐** |
+
 
 ## api-status
 
@@ -118,3 +165,4 @@ planning/   ★ PlanDocs(기획서 파서) · Routes · ApiStatusClient · ApiSt
 ```
 
 `planning/` 이 이 예제가 존재하는 이유다. 나머지는 그것이 볼 대상이다.
+`VolumeGuard` 는 배포용이다 — 위의 「Railway 에 올리기」를 본다.

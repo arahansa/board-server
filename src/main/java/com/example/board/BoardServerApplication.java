@@ -14,6 +14,9 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class BoardServerApplication {
     public static void main(String[] args) {
+        // Spring 이 뜨기 전에 본다. Hibernate 가 빈 스키마를 만들고 난 뒤에 알아 봐야
+        // 늦다 — 그때는 이미 "에러 없이 비어 있는" 상태다
+        VolumeGuard.check(System::getenv);
         SpringApplication.run(BoardServerApplication.class, args);
     }
 }
